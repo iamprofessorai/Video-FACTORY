@@ -1,0 +1,75 @@
+{
+  "entities": {
+    "HistoryItem": {
+      "title": "HistoryItem",
+      "description": "A record of a generated video.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the history item."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who generated the video."
+        },
+        "params": {
+          "type": "object",
+          "description": "The parameters used for video generation."
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "The time the video was generated."
+        },
+        "videoUrl": {
+          "type": "string",
+          "description": "The URL of the generated video (temporary)."
+        },
+        "videoUri": {
+          "type": "string",
+          "description": "The permanent URI of the generated video from Gemini."
+        }
+      },
+      "required": ["id", "userId", "params", "timestamp"]
+    },
+    "UserUsage": {
+      "title": "UserUsage",
+      "description": "Tracks a user's video generation usage.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user."
+        },
+        "lastGenerated": {
+          "type": "number",
+          "description": "The timestamp of the last generation."
+        },
+        "countToday": {
+          "type": "number",
+          "description": "The number of videos generated today."
+        },
+        "tier": {
+          "type": "string",
+          "description": "The user's subscription tier (free, pro, enterprise).",
+          "enum": ["free", "pro", "enterprise"]
+        },
+        "subscriptionExpiresAt": {
+          "type": "number",
+          "description": "The timestamp when the subscription expires."
+        }
+      },
+      "required": ["userId", "lastGenerated", "countToday", "tier"]
+    }
+  },
+  "firestore": {
+    "/history/{historyId}": {
+      "schema": "HistoryItem",
+      "description": "Collection of video generation history items."
+    },
+    "/usage/{userId}": {
+      "schema": "UserUsage",
+      "description": "User usage tracking document."
+    }
+  }
+}

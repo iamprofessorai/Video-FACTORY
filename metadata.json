@@ -1,0 +1,6 @@
+{
+  "name": "Video factory",
+  "description": "Cinematic AI video production with persistent history, tiered usage limits, subscription plans, and multiple visual themes. Powered by Veo.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}

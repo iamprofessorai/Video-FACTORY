@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: history
+    // Document ID: {historyId}
+    // Fields:
+    //   - id: string (required) - Unique ID
+    //   - userId: string (required) - UID of the owner
+    //   - params: map (required) - Generation parameters
+    //   - timestamp: number (required) - Creation time
+    //   - videoUrl: string (optional) - Temporary blob URL
+    //   - videoUri: string (optional) - Permanent Gemini URI
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "iamprofessorai@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidHistoryItem(data) {
+      return data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.params is map &&
+             data.timestamp is number &&
+             (!('videoUrl' in data) || (data.videoUrl is string && data.videoUrl.size() < 2000)) &&
+             (!('videoUri' in data) || (data.videoUri is string && data.videoUri.size() < 2000));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /history/{historyId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidHistoryItem(request.resource.data);
+      allow update: if isDocOwner() && isValidHistoryItem(request.resource.data) && 
+                      request.resource.data.userId == resource.data.userId;
+      allow delete: if isDocOwner() || isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.role == 'user';
+      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
+    }
+
+    match /usage/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && 
+                      request.resource.data.tier in ['free', 'pro', 'enterprise'] &&
+                      request.resource.data.countToday == 0;
+      allow update: if isOwner(userId) || isAdmin();
+    }
+  }
+}
